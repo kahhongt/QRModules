@@ -9,10 +9,11 @@ interval = '1d'
 
 # check latest symbol master and retrieve usdt tokens
 sm = bmod.pullSymbolMaster()
-usdt_tokens = sm[sm['quoteAsset'] == 'USDT']['symbol'].tolist()
+selected_base_tokens = ['BTC', 'ETH', 'LTC', 'ADA', 'XRP', 'AAVE']
+selected_symbols = sm[(sm['quoteAsset'] == 'USDT') & (sm['baseAsset'].isin(selected_base_tokens))]['symbol'].tolist()
 
 # check symbolmaster and ingest data
-for token in usdt_tokens:
+for token in selected_symbols:
     print(f'Initiating Pull for {token}...')
     time.sleep(5)  # implement sleep to prevent hitting api rate limit
     bmod.singleUpdateDataStore(token, interval, start_date, end_date)
