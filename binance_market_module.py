@@ -88,21 +88,26 @@ class BinanceMarketModule:
                   'endTime': unix_end
                  }
         result = self._get(full_url, params=params)
-        cols = ['open_time', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'trades']
-        df = pd.DataFrame(result).iloc[:, :7]
-        df.columns = ['open_time', 'open', 'high', 'low', 'close', 'volume', 'close_time']
-        df['open_ts'] = df['open_time'].apply(lambda x: dt.datetime.fromtimestamp(x/1000))
-        df['close_ts'] = df['close_time'].apply(lambda x: dt.datetime.fromtimestamp(x/1000))
-        df['symbol'] = symbol
-        df = df[['symbol', 'open_ts', 'open_time', 'open', 'high', 'low', 'close', 'volume', 'close_time', 
-                'close_ts']]
+        
+        # check for result
+        if len(result) == 0:  # no output returned from API call
+            df = None
+        else:            
+            cols = ['open_time', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'trades']
+            df = pd.DataFrame(result).iloc[:, :7]
+            df.columns = ['open_time', 'open', 'high', 'low', 'close', 'volume', 'close_time']
+            df['open_ts'] = df['open_time'].apply(lambda x: dt.datetime.fromtimestamp(x/1000))
+            df['close_ts'] = df['close_time'].apply(lambda x: dt.datetime.fromtimestamp(x/1000))
+            df['symbol'] = symbol
+            df = df[['symbol', 'open_ts', 'open_time', 'open', 'high', 'low', 'close', 'volume', 'close_time', 
+                    'close_ts']]
 
-        # convert prices to float
-        df['open'] = df['open'].astype(float)
-        df['high'] = df['high'].astype(float)
-        df['low'] = df['low'].astype(float)
-        df['close'] = df['close'].astype(float)
-        df['volume'] = df['volume'].astype(float)
+            # convert prices to float
+            df['open'] = df['open'].astype(float)
+            df['high'] = df['high'].astype(float)
+            df['low'] = df['low'].astype(float)
+            df['close'] = df['close'].astype(float)
+            df['volume'] = df['volume'].astype(float)
         return df
     
     # pull klines by date, with pagination
@@ -112,23 +117,34 @@ class BinanceMarketModule:
         new_start = start  # comparison variable
         
         while new_start < end:
+            # check on first data pull to see if it exists
             df = self.pullOHLCV(symbol, interval, new_start, end)
-            bulk_list.append(df)
-            first_close = df['close_ts'].iloc[0].strftime('%Y-%m-%d %H:%M:%S')  # convert to string format
-            last_close = df['close_ts'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S')
-            last_open = df['open_ts'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S')
-            
-            # update new start to last close
-            new_start = last_close
-            
-            # exit loop if exceeded intended last time
-            if new_start > end:
-                break
+            if df is not None:
+                bulk_list.append(df)
                 
-        # merge dataframes
-        agg_df = pd.concat(bulk_list, axis=0) # merge all dataframes together
-        agg_df.reset_index(drop=True, inplace=True) # reset index
-        agg_df.drop(agg_df.index[-1], inplace=True) # exclude last row
+                # using extracted data to determine next start
+                first_close = df['close_ts'].iloc[0].strftime('%Y-%m-%d %H:%M:%S')  # convert to string format
+                last_close = df['close_ts'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S')
+                last_open = df['open_ts'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S')
+
+                # update new start to last close
+                new_start = last_close
+
+                # exit loop if exceeded intended last time
+                if new_start > end:
+                    break
+            # if no data output from api call, we iterate next start by a week, forsaking some data at the start
+            else:
+                new_start = (dt.datetime.strptime(new_start, '%Y-%m-%d %H:%M:%S')
+                             +relativedelta(months=1)).strftime('%Y-%m-01 %H:%M:%S')  # update new start to first day of next month
+                
+        # merge dataframes if bulk_list exists
+        if len(bulk_list) > 0:
+            agg_df = pd.concat(bulk_list, axis=0) # merge all dataframes together
+            agg_df.reset_index(drop=True, inplace=True) # reset index
+            agg_df.drop(agg_df.index[-1], inplace=True) # exclude last row
+        else:
+            agg_df = None
         return agg_df
     
     # store bulk OHLCV into local directory, for any duration
@@ -139,12 +155,17 @@ class BinanceMarketModule:
         df = self.pullBulkOHLCV(symbol, interval, start_timestring, end_timestring)
         
         # save in appropriate format
-        ohlcv_path = symbol + '_' + interval + '_' + start_date + '_' + end_date
-        df.to_feather(os.path.join(self.data_dir, ohlcv_path))
-        first_open = df['open_ts'].iloc[0]
-        last_close = df['close_ts'].iloc[-1]
-        #print(f'{symbol} for {interval} interval stored for duration {first_open} to {last_close}')
-        return df
+        if df is not None:
+            ohlcv_path = symbol + '_' + interval + '_' + start_date + '_' + end_date
+            df.to_feather(os.path.join(self.data_dir, ohlcv_path))
+            print(f'New File {ohlcv_path} constructed in DataStore')
+            first_open = df['open_ts'].iloc[0]
+            last_close = df['close_ts'].iloc[-1]
+            #print(f'{symbol} for {interval} interval stored for duration {first_open} to {last_close}')
+            return df
+        else:
+            # inform if no data available for that time
+            print(f'No data available for duration {start_date} to {end_date}')
         
     # update data store and arrange files into library
     def singleUpdateDataStore(self, symbol: str, interval: str, start_date: str, end_date: str):
@@ -182,7 +203,6 @@ class BinanceMarketModule:
             # if file currently does not exist, then construct new file
             else:
                 self.storeBulkOHLCV(symbol, interval, start, end)
-                print(f'New File {filepath} constructed in DataStore')
                 
                 # implement wait time to avoid hitting api rate limit
                 time.sleep(self.wait)
@@ -198,8 +218,12 @@ class BinanceMarketModule:
         # loop through and construct aggregated dataframe
         df_list = []
         for fp in filepaths:
-            df = pd.read_feather(os.path.join(self.data_dir, fp))
-            df_list.append(df)
+            full_fp = os.path.join(self.data_dir, fp)
+            if os.path.exists(full_fp):
+                df = pd.read_feather(full_fp)
+                df_list.append(df)
+            else:
+                continue
         
         # merge all dataframes and reset index
         overall_df = pd.concat(df_list, axis=0)
