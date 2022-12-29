@@ -14,5 +14,5 @@ usdt_tokens = sm[sm['quoteAsset'] == 'USDT']['symbol'].tolist()
 # check symbolmaster and ingest data
 for token in usdt_tokens:
     print(f'Initiating Pull for {token}...')
-    time.sleep(1)  # implement sleep to prevent hitting api rate limit
+    time.sleep(3.5)  # implement sleep to prevent hitting api rate limit
     bmod.singleUpdateDataStore(token, interval, start_date, end_date)
