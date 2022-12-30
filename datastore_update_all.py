@@ -45,6 +45,7 @@ if __name__ == "__main__":
     
     # final update
     update_end_time = dt.datetime.now()
-    print(f'Completed Data Store Update at {update_end_time.strftime('%Y-%m-%d %H:%M:%S')}')
+    update_end_timestring = update_end_time.strftime('%Y-%m-%d %H:%M:%S')
+    print(f'Completed Data Store Update at {update_end_timestring}')
     duration_minutes = (update_end_time - update_start_time).total_seconds() / 60
     print(f'Update duration is {duration_minutes}')
