@@ -5,13 +5,14 @@ from dateutil.relativedelta import relativedelta
 
 if __name__ == "__main__":
     
-    update_start_time = dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f'Initialising Data Store Update at {update_start_time}')
+    update_start_time = dt.datetime.now()
+    update_start_timestring = update_start_time.strftime('%Y-%m-%d %H:%M:%S')
+    print(f'Initialising Data Store Update at {update_start_timestring}')
     
     # initialise module instance and select time duration
     bmod = BinanceMarketModule('spot')
     start_date = '2017-01-01'
-    end_date = '2022-12-01'
+    end_date = dt.datetime.now().strftime('%Y-%m-%d')  # up till latest date
 
     # check latest symbol master and retrieve usdt tokens
     sm = bmod.pullSymbolMaster()
