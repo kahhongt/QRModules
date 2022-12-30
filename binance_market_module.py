@@ -37,6 +37,7 @@ class BinanceMarketModule:
         self.tokenlist = None
         self.parent_dir = os.getcwd()
         self.data_dir = os.path.join(self.parent_dir, 'data')
+        self.library_map = None
         
         # construct empty data directory if it does not exist
         if not os.path.exists(self.data_dir):
@@ -198,7 +199,15 @@ class BinanceMarketModule:
             # check if file already exists
             if os.path.exists(full_filepath):
                 print(f'File {filepath} already exists in DataStore')
-                continue
+               
+                # even if file exists, it the latest month may not be updated
+                self.check_data()  # construct library map
+                latest_start, latest_end = self.library_map[(symbol, interval)]
+                if latest_end == end:  # if same as current, then we have to update again
+                    self.storeBulkOHLCV(symbol, interval, start, end)
+                    print(f'File {filepath} updated')
+                else:
+                    continue
                 
             # if file currently does not exist, then construct new file
             else:
@@ -232,6 +241,43 @@ class BinanceMarketModule:
         # drop excess data outside of selected range
         output = overall_df[(overall_df['open_ts'] < end_date) & (overall_df['open_ts'] >= start_date)]
         return output
+    
+    # check current data directory and return map of what exists
+    def check_data(self):
+        all_files = os.listdir(self.data_dir)
+        # for each symbol and interval, check on earliest and latest date --> don't need to store this, very fast
+        library_map = {}
+        for file in all_files:
+            # check for relevant filenames containing data
+            try:
+                symbol, interval, start, end = file.split('_')
+            # if inappropriate filename, go to next iteration 
+            except:
+                continue
+            
+            # construct dictionary
+            if (symbol, interval) not in library_map:
+                library_map[(symbol, interval)] = [start, end]
+            # if it currently exists, update
+            else:
+                current_start, current_end = library_map[(symbol, interval)]
+                # replace start
+                if start < current_start:
+                    new_start = start
+                else:
+                    new_start = current_start
+
+                # replace end
+                if end > current_end:
+                    new_end = end
+                else:
+                    new_end = current_end
+
+                # replace dic
+                library_map[(symbol, interval)] = [new_start, new_end]
+        # return constructed dictionary
+        self.library_map = library_map
+        return self.library_map
     
     # assign appropriate api_urls
     def _assign_api(self) -> str:
