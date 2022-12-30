@@ -1,5 +1,5 @@
 # QR Modules
-Python Module to perform the 
+Python Module to perform essential signals processing tasks after ingesting klines data of any asset
 
 **Binance Market Module**: (DONE)
 1. Extract relevant candlesticks data from Binance API - Spot (Done), Perpetual and Delivery Futures
@@ -23,3 +23,8 @@ Python Module to perform the
 7. Seasonal Decomposition
 8. Box Cox Transformation --> transform a time series into a more normal distribution
 9. Potential Alpha Signal Recognition
+
+**Signals Module**:
+1. Manage Signals Generation
+2. Backtest Engine: Ingest signals and backtest portfolio
+3. Returns Analysis: Annualised, Sharpe, Sortino, etc
