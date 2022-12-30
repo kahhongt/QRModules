@@ -1,7 +1,7 @@
-# BinanceMarketModule
-Python module to extract market data from Binance API
+# QR Modules
+Python Module to perform the 
 
-**Module Objectives**:
+**Binance Market Module**:
 1. Extract relevant candlesticks data from Binance API - Spot (Done), Perpetual and Delivery Futures
 3. Apply pagination to account for API rate limits (Done)
 4. Store data as flat files in local drive (Done - automatically creates data folder to store files locally)
@@ -9,12 +9,13 @@ Python module to extract market data from Binance API
 6. Construct visualisations based on market data
 
 ## Upcoming Inclusions
-**Analytical Tools**:
+**Analysis Module**:
 1. Quick Visualisations of Prices based on Symbol Input,
 2. Implementing Smoothing Functions --> Moving Average, Differencing, Holt-Winters Exponential Smoothing
 3. Linear Regression Analysis
 4. Autocorrelation and Cross-correlation Calculations
-5. Wavelet Analysis --> decompose a signal into component frequencies
-6. Seasonal Decomposition
-7. Box Cox Transformation --> transform a time series into a more normal distribution
-8. Potential Alpha Signal Recognition
+5. Principal Component Analysis
+6. Wavelet Analysis --> decompose a signal into component frequencies
+7. Seasonal Decomposition
+8. Box Cox Transformation --> transform a time series into a more normal distribution
+9. Potential Alpha Signal Recognition
