@@ -1,5 +1,5 @@
 # QR Modules
-Python Module to perform essential signals processing tasks after ingesting klines data of any asset
+Develop modules in Python to perform essential signal processing tasks after ingesting klines data of any asset, with the objective of generating, storing and executing alpha signals.
 
 **Binance Market Module**: (DONE)
 1. Extract relevant candlesticks data from Binance API - Spot (Done), Perpetual and Delivery Futures
