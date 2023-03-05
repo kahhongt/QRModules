@@ -222,7 +222,7 @@ class StatArb:
         plt.figure(figsize=fg)
         plt.plot(d['reversion_signal'])
         plt.plot(d['momentum_signal'])
-        plt.legend(['Reversion', 'Momentum'])
+        plt.legend(['Mean Reversion', 'Momentum'])
         plt.title('Individual Signals')
 
         plt.figure(figsize=fg)
@@ -239,13 +239,14 @@ class StatArb:
 
         plt.figure(figsize=fg)
         plt.plot(d['net_portfolio'])
-        plt.title('Net Portfolio Position')
+        plt.title('Net Long/Short Portfolio Position')
         plt.show()
         
     # generate results summary
     def results(self):
         # generate results for portfolio, as well as individual assets
-        
+        self.p_data.dropna(how='any', axis=0, inplace=True)
+
         sharpe = np.mean(self.p_data['period_return']) / np.std(self.p_data['period_return']) * np.sqrt(self.annual_factor)
         sortino = np.mean(self.p_data['period_return']) / np.std(self.p_data[self.p_data['period_return'] < 0]['period_return']) * np.sqrt(self.annual_factor)
         max_drawdown = StatArb.max_drawdown(self.p_data.dropna()['cum_return'] + 1)
@@ -290,7 +291,8 @@ class StatArb:
     # generate mean reversion signal, providing confidence interval
     def generate_reversion_signal(self):
         testbed = self.data.copy()
-        testbed['ratio_mean'] = testbed['ratio'].rolling(self.window).mean()
+        # testbed['ratio_mean'] = testbed['ratio'].rolling(self.window).mean()
+        testbed['ratio_mean'] = testbed['ratio'].ewm(halflife=14).mean()
         testbed['ratio_std'] = testbed['ratio'].rolling(self.window).std()
         testbed['reversion_signal'] = testbed.apply(
             lambda row: StatArb.get_single_reversion_signal(row['ratio'],
@@ -306,11 +308,12 @@ class StatArb:
             hl = self.momentum_halflife
 
         # generate signals from base table
+        momentum_threshold = 0.000
         testbed = self.data.copy()
         testbed['ratio_pct_change'] = testbed['ratio'].pct_change()
         testbed['ratio_change_std'] = testbed['ratio_pct_change'].rolling(hl).std()
         testbed['raw_momentum_signal'] = testbed['ratio_pct_change'].ewm(halflife=hl).mean() * (-1)
-        testbed['momentum_signal'] = testbed['raw_momentum_signal'].apply(lambda x: x if abs(x) > 0.000 else 0)
+        testbed['momentum_signal'] = testbed['raw_momentum_signal'].apply(lambda x: x if abs(x) > momentum_threshold else 0)
         return testbed
 
     
