@@ -28,6 +28,8 @@ class StatArb:
         self.transaction_cost_param = 0
         self.annual_factor = 365
         self.momentum_halflife = 7 # 1-week duration for half life
+        self.reversion_halflife = 14
+        self.tickers = df.columns
         
         # determine interval
         if interval == 'day':
@@ -66,15 +68,13 @@ class StatArb:
         self.p_data = None
         
     # generate signal based on rolling window, mean reversion
-    def generate_signal(self, window: int, confidence_level: float, weights: list =[0.5, 0.5]):
-        self.window = window
+    def generate_signal(self, confidence_level: float, weights: list =[0.5, 0.5]):
         self.confidence_level = confidence_level
         
         # process data, respecting the window
         self.p_data = self.data.copy()
-        self.p_data['ratio_mean'] = self.p_data['ratio'].rolling(self.window).mean()
-        self.p_data['ratio_std'] = self.p_data['ratio'].rolling(self.window).std()
-        self.p_data = self.p_data[window:]
+        self.p_data['ratio_mean'] = self.p_data['ratio'].ewm(halflife=self.reversion_halflife).mean()
+        self.p_data['ratio_std'] = self.p_data['ratio'].ewm(halflife=self.reversion_halflife).std()
         
         # generate signal using internal static function; and apply
         self.p_data['reversion_signal'] = self.generate_reversion_signal()['reversion_signal'] * weights[0]
@@ -274,8 +274,8 @@ class StatArb:
         
         # from portfolio
         output['Portfolio'] = [sharpe, sortino, max_drawdown, cagr, cumulative_return]
-        output['Asset X'] = [sharpe_x, sortino_x, max_drawdown_x, cagr_x, cumulative_return_x]
-        output['Asset Y'] = [sharpe_y, sortino_y, max_drawdown_y, cagr_y, cumulative_return_y]
+        output[self.tickers[0]] = [sharpe_x, sortino_x, max_drawdown_x, cagr_x, cumulative_return_x]
+        output[self.tickers[1]] = [sharpe_y, sortino_y, max_drawdown_y, cagr_y, cumulative_return_y]
         
         return output
         
@@ -292,8 +292,8 @@ class StatArb:
     def generate_reversion_signal(self):
         testbed = self.data.copy()
         # testbed['ratio_mean'] = testbed['ratio'].rolling(self.window).mean()
-        testbed['ratio_mean'] = testbed['ratio'].ewm(halflife=14).mean()
-        testbed['ratio_std'] = testbed['ratio'].rolling(self.window).std()
+        testbed['ratio_mean'] = testbed['ratio'].ewm(halflife=self.reversion_halflife).mean()
+        testbed['ratio_std'] = testbed['ratio'].ewm(halflife=self.reversion_halflife).std()
         testbed['reversion_signal'] = testbed.apply(
             lambda row: StatArb.get_single_reversion_signal(row['ratio'],
                                                 row['ratio_mean'],
@@ -311,13 +311,13 @@ class StatArb:
         momentum_threshold = 0.000
         testbed = self.data.copy()
         testbed['ratio_pct_change'] = testbed['ratio'].pct_change()
-        testbed['ratio_change_std'] = testbed['ratio_pct_change'].rolling(hl).std()
+        testbed['ratio_change_std'] = testbed['ratio_pct_change'].ewm(halflife=hl).std()
         testbed['raw_momentum_signal'] = testbed['ratio_pct_change'].ewm(halflife=hl).mean() * (-1)
         testbed['momentum_signal'] = testbed['raw_momentum_signal'].apply(lambda x: x if abs(x) > momentum_threshold else 0)
         return testbed
 
     
-    # create functions to aggregate signals
+    # create function to aggregate both mean reversion and momentum signals
     def aggregate_signals(self, weights: list()):
         # generate weighted combination of signals
         # mean_reversion : momentum
@@ -337,9 +337,11 @@ class StatArb:
 
         # generate signal based on lower and upper bound
         if ratio > upper_bound:
-            signal_strength = (ratio - upper_bound) / upper_bound
+            #signal_strength = (ratio - upper_bound) / upper_bound
+            signal_strength = (ratio - upper_bound) / ratio
         elif ratio < lower_bound:
-            signal_strength = (ratio - lower_bound) / lower_bound
+            #signal_strength = (ratio - lower_bound) / lower_bound
+            signal_strength = (ratio - lower_bound) / ratio
         else:
             signal_strength = 0
         return signal_strength        

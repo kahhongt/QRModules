@@ -1,10 +1,11 @@
 from binance_market_module import BinanceMarketModule
+import datetime as dt
 import time
 
 # initialise module instance and select time duration
 bmod = BinanceMarketModule('spot')
 start_date = '2017-01-01'
-end_date = '2022-12-01'
+end_date = dt.datetime.now().strftime('%Y-%m-%d')
 interval = '1m'
 
 # check latest symbol master and retrieve usdt tokens
