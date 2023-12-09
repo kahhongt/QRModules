@@ -8,7 +8,7 @@ Develop modules in Python to perform essential signal processing tasks after ing
 4. Update local drive on each run, after checking and storing state of local drives
 
 **Forex and Futures Market Module**:
-1. Extract relevant candlesticks data from IBKR
+1. Extract relevant candlesticks data from IBKR and OpenBB
 3. Apply pagination to account for API rate limits
 4. Store data as flat files in local drive
 5. Update local drive on each run
