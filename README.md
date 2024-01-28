@@ -13,6 +13,10 @@ Develop modules in Python to perform essential signal processing tasks after ing
 4. Store data as flat files in local drive
 5. Update local drive on each run
 
+**Equities Module**:
+1. Equities Tickers Sec Master extracted using YFinance (Done)
+2. Bulk upload Candlesticks Data across selected tickers, over selected intervals (Done)
+
 **Analysis Module**:
 1. Quick Visualisations of Prices based on Symbol Input,
 2. Implementing Smoothing Functions --> Moving Average, Differencing, Holt-Winters Exponential Smoothing
